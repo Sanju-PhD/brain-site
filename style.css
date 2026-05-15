@@ -100,3 +100,10 @@ nav {
     border-bottom: 1px solid #21262d;
     margin-bottom: 60px;
 }
+.image-registration {
+    max-width: 700px;
+    color: #c9d1d9;
+    font-family: Libre Baskerville, serif;
+    text-align: center;
+    line-height: 1.8;
+}
