@@ -107,3 +107,229 @@ nav {
     text-align: center;
     line-height: 1.8;
 }
+.garden-section {
+      margin: 2.5rem 0;
+      color: #c9d1d9;
+    }
+.garden-section h2 {
+      font-family: 'Libre Baskerville', serif;
+      color: #c9d1d9;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #e0ddd6;
+      padding-bottom: 0.4rem;
+    }
+ 
+.garden-section p {
+      font-family: 'Libre Baskerville', serif;
+      color: #c9d1d9;
+      line-height: 1.85;
+      font-size: 0.97rem;
+    }
+    /* ── Roadmap ── */
+.roadmap {
+      display: flex;
+      color: #c9d1d9;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+ 
+.roadmap-stage {
+      display: grid;
+      color: #c9d1d9;
+      grid-template-columns: 110px 1px 1fr;
+      gap: 0 1.5rem;
+      align-items: start;
+    }
+ 
+.stage-label {
+      text-align: right;
+      color: #c9d1d9;
+      padding-top: 0.2rem;
+    }
+ .stage-label span {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.72rem;
+      font-style: italic;
+      color: #c9d1d9;
+      display: block;
+      line-height: 1.4;
+    }
+ 
+.stage-label strong {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.82rem;
+      display: block;
+      color: #c9d1d9;
+      margin-bottom: 2px;
+    }
+ 
+.stage-line {
+      background: #d4d0c8;
+      color: #c9d1d9;
+      width: 1px;
+      position: relative;
+      min-height: 100%;
+    }
+ 
+.stage-line::before {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      color: #c9d1d9;
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+ 
+.stage-line.done::before {
+      background: #3b6d11;
+      color: #c9d1d9;
+    }
+ 
+.stage-line.active::before {
+      background: #185fa5;
+      box-shadow: 0 0 0 3px #e6f1fb;
+    }
+ 
+.stage-content {
+      padding: 0 0 2rem 0;
+      color: white;
+    }
+ 
+.stage-content h3 {
+      font-family: 'Libre Baskerville', serif;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+      margin: 0 0 0.5rem;
+    }
+    .resource-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+ 
+    .resource-list li {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.82rem;
+      color: #c9d1d9;
+      line-height: 1.5;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+ 
+    .resource-list li::before {
+      content: '→';
+      font-size: 0.75rem;
+      color: #c9d1d9;
+      flex-shrink: 0;
+    }
+ 
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      color: #c9d1d9;
+      font-family: monospace;
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+ 
+    .badge-done {
+      background: #eaf3de;
+      color: #3b6d11;
+    }
+ 
+    .badge-next {
+      background: #e6f1fb;
+      color: #c9d1d9;
+    }
+ 
+    .badge-pending {
+      background: #f1efe8;
+      color: #888;
+    }
+ 
+    /* ── Session Notes ── */
+    .session-note {
+      border-left: 2px solid #d4d0c8;
+      padding-left: 1.2rem;
+      margin: 1.5rem 0;
+    }
+ 
+    .session-date {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.72rem;
+      font-style: italic;
+      ccolor: #c9d1d9;
+      margin-bottom: 0.6rem;
+    }
+ 
+    .concept-block {
+      margin-bottom: 1.4rem;
+      color: #c9d1d9;
+    }
+ 
+    .concept-block h4 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.88rem;
+      color: #c9d1d9;
+      margin: 0 0 0.3rem;
+      font-style: italic;
+    }
+ 
+    .concept-block p {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.84rem;
+      ccolor: #c9d1d9;
+      line-height: 1.75;
+      margin: 0;
+    }
+ 
+    .math-note {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.8rem;
+      background: #f7f5f0;
+      border-radius: 4px;
+      padding: 0.6rem 0.9rem;
+      margin-top: 0.5rem;
+      color: #444;
+      font-style: italic;
+    }
+ 
+    .open-question {
+      margin-top: 2rem;
+      padding: 1rem 1.2rem;
+      border: 1px dashed #c8c4ba;
+      border-radius: 4px;
+    }
+ 
+    .open-question p {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.84rem;
+      font-style: italic;
+      color: #c9d1d9;
+      margin: 0;
+      line-height: 1.7;
+    }
+ 
+    .open-question p::before {
+      content: 'Open question: ';
+      font-style: normal;
+      font-size: 0.72rem;
+      color: #aaa;
+      display: block;
+      margin-bottom: 3px;
+    }
+  </style>
+</head>
