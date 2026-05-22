@@ -1,0 +1,49 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QnA | Sanju</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="about.html">About me</a>
+    <a href="contact.html">Contact me</a>
+    <a href="garden.html">Garden</a>
+    <a href="19MayNotes.html">Spatial Preprocessing</a>
+  </nav>
+<h1>Building foundational familiarity with the NiBabel library</h1>
+ <a href="https://neuroimaging-data-science.org/content/005-nipy/003-transforms.html">Neuroimaging Data Science
+ </a>
+
+<h2>What does the affine matrix actually encode?</h2  >
+<p>The affine encodes three things: translation (where the origin is in physical space), scaling (voxel size — how many millimeters each voxel step represents), and rotation (the orientation of the image, accounting for head tilt in the scanner). Together, packed into a 4×4 matrix, these map any voxel index (i, j, k) to a real-world coordinate in millimeters.
+
+RAS and LPI are conventions that describe the direction of those axes — right-anterior-superior vs left-posterior-inferior — which is related but a layer above the affine itself.
+</p>
+<h2>What happens when you try to compare voxel (40, 50, 30) in one image with voxel (40, 50, 30) in the other?</h2>
+
+<p>They would not match as they are shifted, rotated and scaled differently.
+</p>
+<h2>When I was resampling one image into another's space using the affine, what was I actually doing mathematically —</h2>
+
+<p>I am doing interpolation, When a pixel lands between grid points, the computer estimates its value by looking at neighboring pixels and averaging or weighing them.
+</p>
+<h2>And what's the risk if I do it carelessly, if I resample carelessly?if I use the wrong interpolation method on a brain mask or a lesion label map, what could go wrong with my downstream analysis?</h2>
+
+<p>Well, if that happens, pixels values will change, label will change and eventually, entire process will be compromised.
+
+And that's not a minor issue — that's a fatal flaw in a segmentation pipeline. If a voxel that was labeled "tumour" gets interpolated with surrounding "healthy tissue" labels and becomes 0.5, and you round it to 0 — you've just erased a lesion from your ground truth. Your model trains on corrupted labels and you'd never know why performance is poor.
+
+This is why in practice, nearest-neighbor interpolation is always used for label maps and masks, while trilinear or sinc is used for raw intensity images like T1w or fMRI. Two different files, two different interpolation strategies, same resampling pipeline.
+</p>
+
+
+<h2>In my own segmentation work, where exactly does this interpolation choice become a decision point — during preprocessing, augmentation, or evaluation?</h2>
+
+<p>It has to be in pre-processing. Since  affine transformation is the first step to register images. After affine, comes the non-linear registration followed by estimating the difference between boundaries of two images. So, its a pre-processing step.
+
+When I fetch a dataset of brain MRIs for segmentation, did i make sure if images are already in a common space? And if they come pre-registered, do I still need to worry about interpolation artifacts in the label maps?
+</p>
+</body>

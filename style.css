@@ -9,10 +9,21 @@ h1 {
     font-size: 2rem;
     color: #58a6ff;
     letter-spacing: 2px;
+    margin-left: 10px;
     text-align: center;
     margin-top: 60px;
 }
 
+h2 {
+  text-transform: inherit;
+  font-size: 1.1rem;
+  color: #c9d1d9;
+  letter-spacing: 0.1px;
+  text-align: left;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-bottom: 5px;
+}
 .bio {
     max-width: 700px;
     margin: 40px auto;
@@ -27,7 +38,7 @@ p {
     margin: 30px auto;
     color: #c9d1d9;
     font-family: Libre Baskerville, serif;
-    text-align: center;
+    text-align: left;
     line-height: 1.8;
 }
 
@@ -268,11 +279,12 @@ nav {
     }
  
     .session-date {
+      margin: top 1px;
       font-family: 'Libre Baskerville', serif;
       font-size: 0.72rem;
       font-style: italic;
-      ccolor: #c9d1d9;
-      margin-bottom: 0.6rem;
+      color: #c9d1d9;
+      margin-bottom: 0.8rem;
     }
  
     .concept-block {
@@ -291,7 +303,7 @@ nav {
     .concept-block p {
       font-family: 'Libre Baskerville', serif;
       font-size: 0.84rem;
-      ccolor: #c9d1d9;
+      color: #c9d1d9;
       line-height: 1.75;
       margin: 0;
     }
@@ -311,25 +323,23 @@ nav {
       margin-top: 2rem;
       padding: 1rem 1.2rem;
       border: 1px dashed #c8c4ba;
-      border-radius: 4px;
+      border-radius: 2px;
     }
  
     .open-question p {
       font-family: 'Libre Baskerville', serif;
       font-size: 0.84rem;
       font-style: italic;
-      color: #c9d1d9;
+      color: white;
       margin: 0;
-      line-height: 1.7;
+      line-height: 1.5;
     }
  
     .open-question p::before {
       content: 'Open question: ';
       font-style: normal;
-      font-size: 0.72rem;
-      color: #aaa;
+      font-size: 0.92rem;
+      color: #e10f0f;
       display: block;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
-  </style>
-</head>

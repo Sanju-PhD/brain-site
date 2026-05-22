@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Implementation Roadmap — Gradient Loss on Brain MRI 2D</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0e1318;
+    --border: #1c2730;
+    --accent: #00c9a7;
+    --accent2: #0078ff;
+    --muted: #3d5260;
+    --text: #c8d8e4;
+    --text-dim: #6b8394;
+    --heading: #eaf4fb;
+    --tag-bg: #0a1f2e;
+    --step-num: #00c9a7;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Scan-line overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,201,167,0.012) 2px,
+      rgba(0,201,167,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 4rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 4rem; right: 4rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .header-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .header-meta::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    color: var(--heading);
+    font-weight: 400;
+    line-height: 1.15;
+    max-width: 720px;
+    letter-spacing: -0.01em;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 4rem 5rem;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 2rem;
+    margin-bottom: 3rem;
+    opacity: 0;
+    transform: translateY(18px);
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .step:nth-child(1) { animation-delay: 0.05s; }
+  .step:nth-child(2) { animation-delay: 0.12s; }
+  .step:nth-child(3) { animation-delay: 0.19s; }
+  .step:nth-child(4) { animation-delay: 0.26s; }
+  .step:nth-child(5) { animation-delay: 0.33s; }
+  .step:nth-child(6) { animation-delay: 0.40s; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-number {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 0.2rem;
+  }
+
+  .step-num-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--accent);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+
+  .step-line {
+    flex: 1;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    margin-top: 8px;
+    opacity: 0.25;
+  }
+
+  .step-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem 1.75rem;
+    position: relative;
+    transition: border-color 0.2s ease;
+  }
+
+  .step-body:hover {
+    border-color: var(--muted);
+  }
+
+  .step-body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    border-radius: 6px 6px 0 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .step-body:hover::before {
+    opacity: 1;
+  }
+
+  .step-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .step-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--heading);
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+  }
+
+  .source-link {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent2);
+    background: rgba(0,120,255,0.07);
+    border: 1px solid rgba(0,120,255,0.2);
+    border-radius: 3px;
+    padding: 0.2rem 0.55rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  .step-body p {
+    font-size: 0.92rem;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+  }
+
+  .step-body p:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    margin-right: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .callout {
+    border-left: 2px solid var(--accent);
+    padding: 0.75rem 1rem;
+    background: rgba(0,201,167,0.04);
+    border-radius: 0 4px 4px 0;
+    margin-top: 0.75rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    font-style: italic;
+  }
+
+  /* Table */
+  .repo-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .repo-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .repo-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid rgba(28,39,48,0.6);
+    vertical-align: top;
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+
+  .repo-table tr:last-child td { border-bottom: none; }
+  .repo-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+  .repo-name {
+    font-weight: 500;
+    color: var(--heading);
+    white-space: nowrap;
+  }
+
+  .repo-url {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent2);
+  }
+
+  /* Dataset list */
+  .dataset-list {
+    list-style: none;
+    margin-top: 0.75rem;
+  }
+
+  .dataset-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+
+  .dataset-list li:last-child { border-bottom: none; }
+
+  .dataset-list li::before {
+    content: '→';
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  /* Sequence section */
+  .sequence-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.75rem;
+    margin-top: 3rem;
+    position: relative;
+    opacity: 0;
+    animation: fadeUp 0.5s ease 0.5s forwards;
+  }
+
+  .sequence-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), transparent);
+    border-radius: 6px 6px 0 0;
+  }
+
+  .sequence-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 1.25rem;
+  }
+
+  .seq-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(28,39,48,0.5);
+  }
+
+  .seq-item:last-child { border-bottom: none; }
+
+  .seq-n {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    width: 18px;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+  }
+
+  .seq-text {
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+
+  .seq-text strong {
+    color: var(--heading);
+    font-weight: 500;
+  }
+
+  code {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78em;
+    background: rgba(0,201,167,0.08);
+    border: 1px solid rgba(0,201,167,0.15);
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 2rem 1.5rem; }
+    main { padding: 2rem 1.5rem 4rem; }
+    .step { grid-template-columns: 40px 1fr; gap: 0 1rem; }
+    .repo-table td, .repo-table th { padding: 0.5rem 0.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-meta">Brain MRI Research &nbsp;·&nbsp; PhD Implementation Track</div>
+  <h1>Implementation Roadmap —<br/><em>Gradient Loss</em> on Brain MRI 2D</h1>
+</header>
+
+<main>
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-number">
+      <div class="step-num-badge">01</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-label">Start Here · Conceptual Foundation</div>
+      <div class="step-title">Neuroimaging and Data Science — 2D Registration Tutorial</div>
+      <div class="source-link">neuroimaging-data-science.org/content/006-image/003-registration.html</div>
+      <div>
+        <span class="tag">DIPY</span>
+        <span class="tag">2D Registration</span>
+        <span class="tag">Visual</span>
+      </div>
+      <p>Uses the <strong style="color:var(--heading)">DIPY library</strong>. Starts with 2D registration on actual brain images. Clean, readable code.</p>
+      <p>Do this first — no neural network complexity yet. Just see registration working visually.</p>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step">
+    <div class="step-number">
+      <div class="step-num-badge">02</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-label">Core Implementation · Gradient Loss in Code</div>
+      <div class="step-title">Towards Data Science — Image Registration for Medical Datasets</div>
+      <div class="source-link">towardsdatascience.com/image-registration-for-medical-datasets-ee605ff8eb2e</div>
+      <div>
+        <span class="tag">VoxelMorph</span>
+        <span class="tag">Custom Loss</span>
+        <span class="tag">Smoothness Penalty</span>
+      </div>
+      <p>This is the one. Implements a <strong style="color:var(--heading)">custom 2D VoxelMorph loss</strong> with two components — reconstruction loss and a smoothness penalty — and includes the actual gradient function in code.</p>
+      <p>You can read the loss function directly and run it. This is your starting point for implementation.</p>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-number">
+      <div class="step-num-badge">03</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-label">Literature · Closest to Your Objective</div>
+      <div class="step-title">"Multi-modal unsupervised brain image registration using edge maps"</div>
+      <div class="source-link">arxiv.org/pdf/2202.04647</div>
+      <div>
+        <span class="tag">Gradient Magnitude</span>
+        <span class="tag">Edge Maps</span>
+        <span class="tag">Geometry Constraints</span>
+      </div>
+      <p>Proposes using <strong style="color:var(--heading)">gradient magnitude of the image</strong> — the edges — as auxiliary information during training. The intuition: locations with strong gradients represent tissue transitions and act as geometry constraints.</p>
+      <div class="callout">This is almost exactly your objective. Read the loss function section using your reading system.</div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step">
+    <div class="step-number">
+      <div class="step-num-badge">04</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-label">Code · GitHub Repositories</div>
+      <div class="step-title">Repositories to Work From</div>
+      <table class="repo-table">
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>URL</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="repo-name">VoxelMorph Official</span></td>
+            <td><span class="repo-url">github.com/voxelmorph/voxelmorph</span></td>
+            <td>Base framework — start here</td>
+          </tr>
+          <tr>
+            <td><span class="repo-name">PyTorch 2D</span></td>
+            <td><span class="repo-url">github.com/Hsankesara/VoxelMorph-PyTorch</span></td>
+            <td>Loads 2D images directly, uses <code>is_2d=True</code> flag — clone this first</td>
+          </tr>
+          <tr>
+            <td><span class="repo-name">JHU Survey</span></td>
+            <td><span class="repo-url">github.com/JHU-MedImage-Reg/MedImgReg_Survey</span></td>
+            <td>Python implementations of loss functions and eval metrics — reference for comparison</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step">
+    <div class="step-number">
+      <div class="step-num-badge">05</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-label">Data · Public Brain MRI Datasets</div>
+      <div class="step-title">Free Datasets — No Sign-up Required</div>
+      <ul class="dataset-list">
+        <li>
+          <div>
+            <strong style="color:var(--heading)">IXI Dataset</strong> — <span class="repo-url">brain-development.org/ixi-dataset</span>
+            <br/>2D brain MRI slices, clean
+          </div>
+        </li>
+        <li>
+          <div>
+            <strong style="color:var(--heading)">OASIS</strong> — <span class="repo-url">oasis-brains.org</span>
+            <br/>Widely used in registration papers including VoxelMorph
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Weekly Sequence -->
+  <div class="sequence-section">
+    <div class="sequence-title">// Your Exact Sequence This Week</div>
+    <div class="seq-item">
+      <div class="seq-n">01</div>
+      <div class="seq-text">Run the <strong>DIPY 2D tutorial</strong> — just see two brain images align</div>
+    </div>
+    <div class="seq-item">
+      <div class="seq-n">02</div>
+      <div class="seq-text">Read the <strong>Towards Data Science article</strong> — understand the gradient function in code</div>
+    </div>
+    <div class="seq-item">
+      <div class="seq-n">03</div>
+      <div class="seq-text">Clone the <strong>PyTorch 2D VoxelMorph repo</strong></div>
+    </div>
+    <div class="seq-item">
+      <div class="seq-n">04</div>
+      <div class="seq-text">Download <strong>4–5 IXI brain slices</strong></div>
+    </div>
+    <div class="seq-item">
+      <div class="seq-n">05</div>
+      <div class="seq-text">Run existing <strong>NCC loss</strong> first — see the baseline</div>
+    </div>
+    <div class="seq-item">
+      <div class="seq-n">06</div>
+      <div class="seq-text">Then <strong>swap in the gradient loss</strong> from the TDS article — see the difference visually</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>Brain MRI · Gradient Loss Implementation · PhD Research Track</footer>
+
+</body>
+</html>
