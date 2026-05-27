@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker — Sanju</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0d0d; --surface: #161616; --surface2: #1e1e1e;
+    --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.18);
+    --text: #e8e3dc; --text-muted: #6b6660; --text-dim: #3a3835;
+    --accent: #c8b99a; --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  html { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 14px; }
+  body { min-height: 100vh; padding: 3rem 2rem 6rem; max-width: 860px; margin: 0 auto; }
+  header { margin-bottom: 3.5rem; }
+  header a { color: var(--text-muted); text-decoration: none; font-size: 12px; letter-spacing: 0.08em; display: inline-block; margin-bottom: 2rem; transition: color 0.2s; }
+  header a:hover { color: var(--text); }
+  header a::before { content: '← '; }
+  h1 { font-family: var(--font-serif); font-size: clamp(2rem, 5vw, 3rem); font-weight: 400; font-style: italic; color: var(--text); line-height: 1.1; margin-bottom: 0.4rem; }
+  .subtitle { color: var(--text-muted); font-size: 12px; letter-spacing: 0.06em; }
+  .habits-nav { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; overflow-x: auto; scrollbar-width: none; }
+  .habits-nav::-webkit-scrollbar { display: none; }
+  .hnav-btn { background: none; border: none; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; padding: 0.75rem 1.25rem; cursor: pointer; border-bottom: 1.5px solid transparent; margin-bottom: -1px; transition: all 0.2s; white-space: nowrap; }
+  .hnav-btn:hover { color: var(--text); }
+  .hnav-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .grid-wrap { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; padding-bottom: 0.5rem; }
+  .grid-inner { min-width: 680px; }
+  .month-row { display: flex; margin-left: 36px; margin-bottom: 6px; gap: 3px; }
+  .month-slot { width: 13px; font-size: 10px; color: var(--text-muted); letter-spacing: 0.04em; flex-shrink: 0; }
+  .day-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+  .day-label { width: 32px; font-size: 10px; color: var(--text-dim); text-align: right; flex-shrink: 0; letter-spacing: 0.04em; }
+  .cell { width: 13px; height: 13px; border-radius: 2px; cursor: pointer; flex-shrink: 0; transition: transform 0.1s; position: relative; }
+  .cell:hover { transform: scale(1.35); z-index: 2; }
+  .cell.future { cursor: default; }
+  .cell.future:hover { transform: none; }
+  .cell.has-note::after { content: ''; position: absolute; top: 1px; right: 1px; width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.55); }
+  .legend-row { display: flex; align-items: center; gap: 5px; margin-top: 10px; justify-content: flex-end; }
+  .legend-row span { font-size: 10px; color: var(--text-dim); }
+  .legend-cell { width: 13px; height: 13px; border-radius: 2px; }
+  .status-bar { font-size: 11px; color: var(--text-muted); margin-bottom: 1rem; min-height: 16px; letter-spacing: 0.03em; }
+  .status-bar.error { color: #c24455; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 2.5rem 0; background: var(--border); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .stat-box { background: var(--surface); padding: 1.2rem 1.4rem; }
+  .stat-box .val { font-family: var(--font-serif); font-size: 2rem; font-style: italic; color: var(--text); line-height: 1; }
+  .stat-box .lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.07em; margin-top: 0.3rem; text-transform: uppercase; }
+  .log-section { border: 1px solid var(--border); border-radius: 4px; padding: 1.5rem; background: var(--surface); }
+  .log-title { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.25rem; }
+  .log-date { font-family: var(--font-serif); font-style: italic; font-size: 1.1rem; color: var(--text); margin-bottom: 1.25rem; }
+  .intensity-track { display: flex; gap: 8px; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .intensity-btn { width: 32px; height: 32px; border-radius: 3px; border: 1px solid var(--border); background: none; cursor: pointer; transition: all 0.15s; }
+  .intensity-btn:hover { border-color: var(--border-hover); }
+  .intensity-btn.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .intensity-label { font-size: 11px; color: var(--text-muted); margin-left: 4px; letter-spacing: 0.05em; }
+  .needle-wrap { margin-bottom: 1.25rem; }
+  .needle-label { font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .needle-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 9px 12px; outline: none; transition: border-color 0.2s; letter-spacing: 0.02em; }
+  .needle-input:focus { border-color: var(--border-hover); }
+  .needle-input::placeholder { color: var(--text-dim); }
+  .char-count { font-size: 10px; color: var(--text-dim); text-align: right; margin-top: 4px; }
+  .log-actions { display: flex; gap: 10px; align-items: center; }
+  .btn { font-family: var(--font-mono); font-size: 12px; padding: 8px 20px; border-radius: 3px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #0d0d0d; border: none; font-weight: 500; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost { background: none; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border-hover); color: var(--text); }
+  .save-msg { font-size: 11px; color: var(--text-muted); opacity: 0; transition: opacity 0.3s; }
+  .save-msg.show { opacity: 1; }
+  .timeline-section { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 2rem; }
+  .timeline-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; }
+  .timeline-title { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  .timeline-filter { font-size: 11px; color: var(--text-muted); background: none; border: none; font-family: var(--font-mono); cursor: pointer; letter-spacing: 0.05em; }
+  .timeline-filter:hover { color: var(--text); }
+  .timeline-entries { display: flex; flex-direction: column; gap: 1px; }
+  .tl-entry { display: flex; align-items: baseline; gap: 12px; padding: 9px 12px; border-radius: 3px; transition: background 0.15s; }
+  .tl-entry:hover { background: var(--surface2); }
+  .tl-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; margin-top: 3px; }
+  .tl-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; min-width: 90px; }
+  .tl-note { font-size: 13px; color: var(--text); flex: 1; }
+  .tl-level { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+  .tl-empty { font-size: 12px; color: var(--text-dim); padding: 1rem 0; font-style: italic; }
+  .tooltip { position: fixed; background: var(--surface2); border: 1px solid var(--border-hover); border-radius: 3px; font-size: 11px; color: var(--text); padding: 7px 12px; pointer-events: none; display: none; z-index: 999; letter-spacing: 0.03em; max-width: 220px; line-height: 1.5; }
+  .loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; font-size: 12px; color: var(--text-muted); letter-spacing: 0.08em; transition: opacity 0.4s; }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  @media (max-width: 600px) { body { padding: 2rem 1rem 4rem; } .stats-row { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">loading your data...</div>
+
+<header>
+  <a href="https://sanju-phd.github.io/brain-site/">home</a>
+  <h1>consistency.</h1>
+  <p class="subtitle">a year in squares — what moved the needle</p>
+</header>
+
+<nav class="habits-nav" id="habits-nav"></nav>
+
+<div class="status-bar" id="status-bar"></div>
+
+<div class="grid-wrap">
+  <div class="grid-inner">
+    <div class="month-row" id="month-row"></div>
+    <div id="grid-rows"></div>
+    <div class="legend-row">
+      <span>less</span>
+      <div class="legend-cell" id="lc0"></div>
+      <div class="legend-cell" id="lc1"></div>
+      <div class="legend-cell" id="lc2"></div>
+      <div class="legend-cell" id="lc3"></div>
+      <div class="legend-cell" id="lc4"></div>
+      <span>more</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-row" id="stats-row"></div>
+
+<div class="log-section">
+  <div class="log-title">log today</div>
+  <div class="log-date" id="log-date"></div>
+  <div class="intensity-track">
+    <div id="intensity-btns" style="display:flex;gap:8px;"></div>
+    <span class="intensity-label" id="intensity-label">— none</span>
+  </div>
+  <div class="needle-wrap">
+    <div class="needle-label">what moved the needle?</div>
+    <input class="needle-input" id="needle-input" type="text" maxlength="60" placeholder="e.g. understood Dice loss finally" autocomplete="off" />
+    <div class="char-count" id="char-count">0 / 60</div>
+  </div>
+  <div class="log-actions">
+    <button class="btn btn-primary" id="log-btn" onclick="logToday()">log it</button>
+    <button class="btn btn-ghost" onclick="clearToday()">clear</button>
+    <span class="save-msg" id="save-msg">saved.</span>
+  </div>
+</div>
+
+<div class="timeline-section">
+  <div class="timeline-header">
+    <span class="timeline-title">recent notes</span>
+    <button class="timeline-filter" onclick="cycleFilter()" id="filter-btn">last 14 days</button>
+  </div>
+  <div class="timeline-entries" id="timeline-entries"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============================================================
+// CONFIGURATION — paste your values here before uploading
+// ============================================================
+const SUPABASE_URL = 'https://xdgmbheszmzrhxxbqvht.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkZ21iaGVzem16cmh4eGJxdmh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NjU2MDQsImV4cCI6MjA5NTQ0MTYwNH0.X6a4Z-MAn8DPRvSLpQFs8_rLUBSHCCoTdlub5bjbYsc';
+// ============================================================
+
+const HABITS = [
+  { id:'thesis',   label:'thesis',        colors:['#1a1a1a','#2d2416','#5c4a1e','#8c7030','#c8a84b'], levels:['none','skimmed','read','deep work','flow state'] },
+  { id:'papers',   label:'paper reading', colors:['#1a1a1a','#141e2a','#1e3a5f','#2860a0','#4a90d9'], levels:['none','abstract only','partial read','full read','annotated'] },
+  { id:'webdev',   label:'web dev',       colors:['#1a1a1a','#1a2218','#2a4024','#3d6b35','#5a9e4a'], levels:['none','browsed','practiced','built','shipped'] },
+  { id:'python',   label:'python practice',colors:['#1a1a1a','#1a1a2a','#252550','#3535a0','#5a5ae0'], levels:['none','read docs','ran examples','wrote code','solved problems'] },
+];
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SHOW_ROWS = [1,3,5];
+const SHOW_LABELS = ['Mon','Wed','Fri'];
+const FILTER_OPTIONS = [14,30,90,365];
+const FILTER_LABELS = ['last 14 days','last 30 days','last 3 months','full year'];
+
+let active = 0;
+let selectedLevel = 1;
+let filterIdx = 0;
+let cache = {};  // cache[habitId][dateKey] = {level, note}
+
+// ── Supabase helpers ─────────────────────────────────────────
+async function sbFetch(path, options={}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+    },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function loadAllData() {
+  const rows = await sbFetch('habits?select=habit_id,date_key,level,note&order=date_key.desc');
+  cache = {};
+  HABITS.forEach(h => cache[h.id] = {});
+  (rows||[]).forEach(r => {
+    if (!cache[r.habit_id]) cache[r.habit_id] = {};
+    cache[r.habit_id][r.date_key] = { level: r.level, note: r.note||'' };
+  });
+}
+
+async function upsertRow(habitId, dateKey, level, note) {
+  await sbFetch('habits', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates',
+    body: JSON.stringify({ habit_id: habitId, date_key: dateKey, level, note }),
+  });
+}
+
+async function deleteRow(habitId, dateKey) {
+  await sbFetch(`habits?habit_id=eq.${habitId}&date_key=eq.${dateKey}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── Date helpers ─────────────────────────────────────────────
+function dk(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+
+function getWeeks() {
+  const end = today();
+  const start = new Date(end); start.setDate(start.getDate()-363);
+  while(start.getDay()!==0) start.setDate(start.getDate()-1);
+  const weeks=[]; let cur=new Date(start);
+  while(cur<=end){
+    const w=[]; for(let d=0;d<7;d++){w.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+    weeks.push(w);
+  }
+  return weeks;
+}
+
+// ── UI builders ──────────────────────────────────────────────
+function buildNav() {
+  const el=document.getElementById('habits-nav'); el.innerHTML='';
+  HABITS.forEach((h,i)=>{
+    const b=document.createElement('button');
+    b.className='hnav-btn'+(i===active?' active':'');
+    b.textContent=h.label;
+    b.onclick=()=>{ active=i; selectedLevel=1; render(); };
+    el.appendChild(b);
+  });
+}
+
+function buildGrid(weeks) {
+  const h=HABITS[active];
+  const hd=cache[h.id]||{};
+  const tod=dk(today());
+
+  const mr=document.getElementById('month-row'); mr.innerHTML='';
+  let lastM=-1;
+  weeks.forEach(w=>{
+    const slot=document.createElement('div'); slot.className='month-slot';
+    const m=w[0].getMonth();
+    if(m!==lastM){ slot.textContent=MONTHS[m]; lastM=m; }
+    mr.appendChild(slot);
+  });
+
+  const gr=document.getElementById('grid-rows'); gr.innerHTML='';
+  for(let d=0;d<7;d++){
+    const row=document.createElement('div'); row.className='day-row';
+    const lbl=document.createElement('div'); lbl.className='day-label';
+    const si=SHOW_ROWS.indexOf(d); lbl.textContent=si>=0?SHOW_LABELS[si]:'';
+    row.appendChild(lbl);
+    weeks.forEach(w=>{
+      const date=w[d]; const key=dk(date);
+      const entry=hd[key]||{level:0,note:''};
+      const val=entry.level||0;
+      const now=today(); const isFuture=date>now;
+      const cell=document.createElement('div');
+      cell.className='cell'+(isFuture?' future':'')+((!isFuture&&entry.note)?' has-note':'');
+      cell.style.background=isFuture?'#111':h.colors[val];
+      if(!isFuture){
+        if(key===tod) cell.style.outline='1px solid rgba(200,185,154,0.6)';
+        cell.addEventListener('mouseenter',e=>showTip(e,key,entry,h));
+        cell.addEventListener('mouseleave',hideTip);
+        cell.addEventListener('click',()=>{
+          const cur=hd[key]||{level:0,note:''};
+          const newLevel=(cur.level+1)%5;
+          hd[key]={level:newLevel,note:cur.note||''};
+          cache[h.id]=hd;
+          upsertRow(h.id,key,newLevel,cur.note||'').catch(()=>setStatus('save failed — check connection','error'));
+          buildGrid(weeks); buildStats(); buildTimeline();
+        });
+      }
+      row.appendChild(cell);
+    });
+    gr.appendChild(row);
+  }
+
+  const lc=h.colors;
+  for(let i=0;i<5;i++) document.getElementById('lc'+i).style.background=lc[i];
+}
+
+function showTip(e,key,entry,h){
+  const tt=document.getElementById('tooltip');
+  const d=new Date(key+'T00:00:00');
+  const opts={weekday:'short',day:'numeric',month:'short'};
+  const val=entry.level||0;
+  let html=`${d.toLocaleDateString('en-IN',opts)} · ${h.levels[val]}`;
+  if(entry.note) html+=`<br><span style="color:var(--accent);font-style:italic">${entry.note}</span>`;
+  tt.innerHTML=html; tt.style.display='block';
+  tt.style.left=(e.clientX+14)+'px'; tt.style.top=(e.clientY-44)+'px';
+}
+function hideTip(){ document.getElementById('tooltip').style.display='none'; }
+
+function buildStats(){
+  const h=HABITS[active]; const hd=cache[h.id]||{}; const tod=today();
+  const active_days=Object.values(hd).filter(e=>(e.level||0)>0).length;
+  let streak=0; let cur=new Date(tod);
+  while(true){ if((hd[dk(cur)]?.level||0)>0){streak++;cur.setDate(cur.getDate()-1);}else break; }
+  let wk=0;
+  for(let i=0;i<7;i++){ const d=new Date(tod);d.setDate(d.getDate()-i);if((hd[dk(d)]?.level||0)>0)wk++; }
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-box"><div class="val">${active_days}</div><div class="lbl">days logged</div></div>
+    <div class="stat-box"><div class="val">${streak}</div><div class="lbl">day streak</div></div>
+    <div class="stat-box"><div class="val">${wk}/7</div><div class="lbl">this week</div></div>`;
+}
+
+function buildLogPanel(){
+  const h=HABITS[active]; const tod=today();
+  document.getElementById('log-date').textContent=tod.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  const container=document.getElementById('intensity-btns'); container.innerHTML='';
+  for(let i=0;i<5;i++){
+    const btn=document.createElement('button');
+    btn.className='intensity-btn'+(i===selectedLevel?' selected':'');
+    btn.style.background=i===0?'var(--surface2)':h.colors[i];
+    btn.title=h.levels[i];
+    btn.onclick=()=>{ selectedLevel=i; buildLogPanel(); };
+    container.appendChild(btn);
+  }
+  document.getElementById('intensity-label').textContent=`— ${h.levels[selectedLevel]}`;
+  const existing=cache[h.id]?.[dk(tod)];
+  const inp=document.getElementById('needle-input');
+  inp.value=existing?.note||'';
+  document.getElementById('char-count').textContent=`${inp.value.length} / 60`;
+}
+
+function buildTimeline(){
+  const h=HABITS[active]; const hd=cache[h.id]||{}; const tod=today();
+  const days=FILTER_OPTIONS[filterIdx];
+  const entries=[];
+  for(let i=0;i<days;i++){
+    const d=new Date(tod); d.setDate(d.getDate()-i);
+    const key=dk(d); const entry=hd[key];
+    if(entry&&(entry.level>0||entry.note)) entries.push({key,date:new Date(d),entry});
+  }
+  const el=document.getElementById('timeline-entries'); el.innerHTML='';
+  if(entries.length===0){
+    const em=document.createElement('div'); em.className='tl-empty';
+    em.textContent='no notes yet — log something today.'; el.appendChild(em); return;
+  }
+  entries.forEach(({key,date,entry})=>{
+    const row=document.createElement('div'); row.className='tl-entry';
+    const dot=document.createElement('div'); dot.className='tl-dot';
+    dot.style.background=h.colors[entry.level||0]; row.appendChild(dot);
+    const dateEl=document.createElement('div'); dateEl.className='tl-date';
+    dateEl.textContent=date.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    row.appendChild(dateEl);
+    const noteEl=document.createElement('div'); noteEl.className='tl-note';
+    noteEl.textContent=entry.note||'—'; row.appendChild(noteEl);
+    const lvlEl=document.createElement('div'); lvlEl.className='tl-level';
+    lvlEl.textContent=h.levels[entry.level||0]; row.appendChild(lvlEl);
+    el.appendChild(row);
+  });
+}
+
+function cycleFilter(){
+  filterIdx=(filterIdx+1)%FILTER_OPTIONS.length;
+  document.getElementById('filter-btn').textContent=FILTER_LABELS[filterIdx];
+  buildTimeline();
+}
+
+function setStatus(msg,type=''){
+  const el=document.getElementById('status-bar');
+  el.textContent=msg; el.className='status-bar'+(type?' '+type:'');
+}
+
+document.getElementById('needle-input').addEventListener('input',function(){
+  document.getElementById('char-count').textContent=`${this.value.length} / 60`;
+});
+
+async function logToday(){
+  const h=HABITS[active]; const key=dk(today());
+  const note=document.getElementById('needle-input').value.trim();
+  const btn=document.getElementById('log-btn');
+  btn.disabled=true; btn.textContent='saving...';
+  try {
+    await upsertRow(h.id,key,selectedLevel,note);
+    if(!cache[h.id]) cache[h.id]={};
+    cache[h.id][key]={level:selectedLevel,note};
+    const weeks=getWeeks(); buildGrid(weeks); buildStats(); buildTimeline();
+    const msg=document.getElementById('save-msg');
+    msg.classList.add('show'); setTimeout(()=>msg.classList.remove('show'),2000);
+    setStatus('');
+  } catch(e) {
+    setStatus('could not save — check your connection','error');
+  }
+  btn.disabled=false; btn.textContent='log it';
+}
+
+async function clearToday(){
+  const h=HABITS[active]; const key=dk(today());
+  try {
+    await deleteRow(h.id,key);
+    if(cache[h.id]) delete cache[h.id][key];
+    document.getElementById('needle-input').value='';
+    document.getElementById('char-count').textContent='0 / 60';
+    selectedLevel=1;
+    const weeks=getWeeks(); buildGrid(weeks); buildStats(); buildLogPanel(); buildTimeline();
+  } catch(e) {
+    setStatus('could not clear — check your connection','error');
+  }
+}
+
+function render(){ buildNav(); const weeks=getWeeks(); buildGrid(weeks); buildStats(); buildLogPanel(); buildTimeline(); }
+
+// ── Boot ─────────────────────────────────────────────────────
+(async()=>{
+  try {
+    await loadAllData();
+    render();
+  } catch(e) {
+    setStatus('could not connect to database — check your keys','error');
+    render();
+  }
+  const overlay=document.getElementById('loading');
+  overlay.classList.add('hidden');
+  setTimeout(()=>overlay.remove(),500);
+})();
+</script>
+</body>
+</html>
