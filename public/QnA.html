@@ -46,4 +46,19 @@ This is why in practice, nearest-neighbor interpolation is always used for label
 
 When I fetch a dataset of brain MRIs for segmentation, did i make sure if images are already in a common space? And if they come pre-registered, do I still need to worry about interpolation artifacts in the label maps?
 </p>
+<h2>What does that one letter mean anatomically? And what happens to your brain image — and your AAL3 labels — if you feed them into VoxelMorph without fixing it?
+</h2>
+<p>
+<pre><code>
+(192, 384, 384)  vs  (260, 311, 260)      # Problem 1
+(0.80, 0.54, 0.54) vs (0.7, 0.7, 0.7)    # Problem 2
+('R', 'A', 'S') vs ('L', 'A', 'S')       # Problem 3
+sform: 2 vs 4                             # Problem 4
+affine: False                             # Problem 5
+</code></pre>
+But you're still being surface-level. "Align in the wrong manner" is too gentle a phrase for what actually happens.
+Your brain gets mirrored across the X-axis. Broca's area goes to the right hemisphere. Right motor cortex maps to left. And since you're using AAL3 labels — every single region ID will be assigned to the anatomically wrong hemisphere. Silently. No error. No warning. Your Dice scores will look reasonable because the shape matched, but the neuroscience will be completely inverted.
+That's not a "problem." That's a catastrophic failure dressed in normal-looking output.
+</p>
+
 </body>
