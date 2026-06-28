@@ -17,7 +17,7 @@
 <h1>Building foundational familiarity with the NiBabel library</h1>
  <a href="https://neuroimaging-data-science.org/content/005-nipy/003-transforms.html">Neuroimaging Data Science
  </a>
-
+<div class="qna-section">
 <h3>What does the affine matrix actually encode?</h3  >
 <p>The affine encodes three things: translation (where the origin is in physical space), scaling (voxel size — how many millimeters each voxel step represents), and rotation (the orientation of the image, accounting for head tilt in the scanner). Together, packed into a 4×4 matrix, these map any voxel index (i, j, k) to a real-world coordinate in millimeters.
 
@@ -60,5 +60,25 @@ But you're still being surface-level. "Align in the wrong manner" is too gentle 
 Your brain gets mirrored across the X-axis. Broca's area goes to the right hemisphere. Right motor cortex maps to left. And since you're using AAL3 labels — every single region ID will be assigned to the anatomically wrong hemisphere. Silently. No error. No warning. Your Dice scores will look reasonable because the shape matched, but the neuroscience will be completely inverted.
 That's not a "problem." That's a catastrophic failure dressed in normal-looking output.
 </p>
+<h2>L1 and L2 Regularization</h2>
+<h3>Given that spring analogy, what do you predict happens to a
+sharp anatomical boundary (say, the gray matter/white matter edge)
+if you use L2 regularization on the deformation field around it? Does 
+the boundary in the warped image stay sharp, or does it blur? </h3>
+<p>From the page of Hook's Law: F=1/2kx^2
+At a sharp anatomical boundary, the true registration solution needs a large, abrupt jump in displacement values between two adjacent voxels (one side of the boundary
+moves one way, the other side moves differently). That's a big, localized gradient.
+</p>  
 
+<h3>If L2 penalizes large localized gradients heavily — like a spring resisting a sharp yank — what does the optimizer do instead, to avoid paying that huge quadratic 
+cost? Does it:
+(a) pay the cost and keep the sharp jump, or
+
+(b) spread that same total displacement change over several neighboring voxels, lowering each individual gradient (and the squared penalty), at the cost of blurring 
+where exactly the jump happens?
+</h3>
+<p>It will spread the displacement change over several neighboring voxels, lowering each individual gradient (and the squared penalty), at the cost of blurring where 
+exactly the jump happens. So, the boundary in the warped image will blur.
+</div>
+  
 </body>
