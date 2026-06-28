@@ -1,0 +1,108 @@
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spatial Preprocessing | Sanju</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+ 
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="about.html">About me</a>
+    <a href="contact.html">Contact me</a>
+    <a href="QnA.html">QnA</a>
+    <a href="garden.html">Garden</a>
+  </nav>
+
+  <div class="spatial-preprocessing-section">
+    <h1> Spatial Pre-processing </h1>
+
+    <p> Spatial processing: 
+    It has major two types:
+    1. Intensity transformations
+    2. Spatial filtering
+    </p>
+
+    <h2>What is spatial domain pre-processing? and how is it differ from transform domain pre-processing?</h2>
+
+    <p>The processing occurs on a spatial domain means area or a plane containing pixels.
+    </p>   
+
+    <h2>What is Intensity transformation?</h2>
+    <div class="math-note">
+      g(x,y) = T[f(x,y)]
+    </div>
+    <p>
+    where T is the transformation function, an operator being aplied on the pixels of the image, f is the input image, and g is the output image.
+    Intensity here is nothing but the gray level or a mapping function.
+    
+    <div class="math-note">
+      s=T(r)    
+    </div>
+    </p>
+
+    <p>When we define a point from where contrast going from dark to bright
+       or bright to dark, that point is called as a threshold point. 
+    </p>
+    <p>
+            8 bit image has 256 entries.
+    </p>
+
+  <div class="IP-types">
+      <div class="IP-type">
+        <h3>1. Linear transformation</h3>
+        <p>It is a linear mapping from input to output. It is a straight line function.
+          It has a intensity level range [0, L-1] where L is the number of possible intensity values in the image. For an 8 bit image, L is 256, so the range is [0, 255].
+        <div class="math-note">
+          s = L-1-r
+        </div>
+        Using this equation, we can get the negative of an image. If its black, it becomes white and if its white, it becomes black. So, the contrast is reversed.
+        </p>
+      </div>
+
+      <div class="IP-type">
+        <h3>2. Lograthmic transformation</h3>
+        <p>It is a non-linear mapping from input to output. It is a curve function.</p>
+        <div class="math-note">
+          s = c log(1+r)
+        </div>
+        Log function compresses the dynamic range of the input image. It is used to enhance the details in the dark regions of an image while compressing the bright regions. The constant c is a scaling factor that can be adjusted to control the degree of enhancement.
+      </div>
+
+      <div class="IP-type">
+        <h3>3. Power-law transformation</h3>
+        <p>It is also a non-linear mapping from input to output. It is a curve function.</p>
+        <div class="math-note">
+        s = c r^γ
+        </div>
+      Power-law transformation, also known as gamma correction, is used to adjust the brightness and contrast of an image. The parameter γ (gamma) controls the shape of the transformation curve. If γ < 1, the transformation will brighten the image; if γ > 1, it will darken the image. The constant c is a scaling factor that can be adjusted to control the overall intensity of the output image.
+    </div>
+   
+    <div class="open-question">
+      <p>Why does first transform and then inverse transform done on an image? Why do edges appear where they do in MRIs? what does gradient vector tells at these locations?
+        What happens at boundaries durign warping? Do they get preserved or blurred? Should a boundary loss be applied to the image directly, to the displacement field, or to both?
+      </p>   
+    </div>
+  
+  </div>
+
+  <div class="template-section">
+    <h2>Template</h2>
+    <p> Templates are the spatial probability maps, means they tells us that hippocampus is probably
+      in this region of MNI space. So, it is a prior knowledge about the location of the structure in the brain. 
+      It is used to guide the registration process and improve the accuracy of the alignment.
+    </p>
+    <p> Template doesn't teach model to see, it tells model where to look.
+    <h2> What does registration do?</h2>
+    <p> Registration minimizes that distance by estimating a transformation field.
+      It has two types:
+      1. Linear registration: It is a global transformation that includes translation, rotation, scaling, and shearing. 
+      It is used to align images that are similar in shape and size.
+      2. Non-linear registration:It aligns local anatomy by deforming every voxel.
+  </div>
+
+  <footer>
+    From the desk of Gonzalez & Woods — Digital Image Processing, Ch. 3 & Ch. 10 © 2026 Sanju. All rights reserved.
+  </footer>
+</body>       
