@@ -6,11 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Garden | Sanju</title>
   <link rel="stylesheet" href="../style.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@0;1&display=swap" rel="stylesheet">
 </head>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <body>
 
   <nav>
@@ -114,6 +117,7 @@
         <div class="stage-content">
           <h3>Frameworks to work in</h3>
           <ul class="resource-list">
+            <li>Nibabel Library — <span style="font-family:monospace; font-size:0.78rem;">nipy.org/nibabel</span> <span class="badge badge-pending">Done</span></li>
             <li>VoxelMorph GitHub — <span style="font-family:monospace; font-size:0.78rem;">github.com/voxelmorph/voxelmorph</span> <span class="badge badge-pending">pending</span></li>
             <li>MONAI framework — <span style="font-family:monospace; font-size:0.78rem;">monai.io</span> <span class="badge badge-pending">pending</span></li>
             <li>Neurite library (same authors as VoxelMorph) <span class="badge badge-pending">pending</span></li>
@@ -123,18 +127,26 @@
  
     </div>
   </div>
-  <div class="garden-section">
-    <h2>Session Notes</h2>
- 
+
+ <div class="garden-section">
+    <h2>Stage 1- Math foundations</h2>    
     <div class="session-note">
-      <div class="session-date">17 May 2026</div>
- 
+      <div class="Calculus">Gradients &amp Calculus - 3Blue1Brown</div>
+        
       <div class="concept-block">
-        <h4>What is a gradient in an image?</h4>
+        <h4>1. What is a gradient in an image?</h4>
         <p>A gradient at any pixel tells you two things: the direction in which intensity is changing fastest, and the magnitude of that change. At the boundary between two brain tissue types — say white matter and CSF — intensity drops sharply, so the gradient magnitude is high. Deep inside a uniform tissue region, intensity barely changes, so gradient magnitude is low. This is how the math knows where a boundary is.</p>
         <div class="math-note">Gradient = direction + magnitude of intensity change at a pixel. High magnitude → boundary. Low magnitude → uniform region.</div>
       </div>
 
+      <div class="concept-block">
+        <h4>2. What is a differentiation?</h4>
+        <p> DIff is fundamentally some tiny changes in some quantity..
+        </p>
+      </div>
+
+
+    <h2>Stage 2- Registration concepts</h2>
       <div class="concept-block">
         <h4>What does the deformation field φ actually store?</h4>
         <p>The deformation field φ is defined at every pixel location. At each pixel x, it stores a displacement vector (Δx, Δy) — meaning: "move this pixel by this much in order to align it with the fixed image." It is not the pixel's absolute position. It is the offset from where the pixel currently is to where it needs to go. The registration goal is then to find the φ that minimises intensity difference between the warped moving image and the fixed image.</p>
@@ -148,12 +160,49 @@
           derivatives of the displacement field. 
           Smoothness = differentiability = no folding.</div>
       </div>
- 
-      <div class="open-question">
-        <p>Should a boundary loss be applied to the image directly, to the displacement field, or to both? What happens to sharp boundaries during warping, and does the warp preserve them or blur them?</p>
-      </div>
+    <h2>Stage 3- Loss functions</h2>  
 
-      
-  </div> 
+    <h2>Stage 4- Boundary losses</h2>
+
+    <h2>Stage 5- Implementation</h2>
+    <div class="code">
+      <h2>Image loading via nibabel python library</h2>
+      <pre><code class="language-python">
+          import nibabel as nib
+          import numpy as np
+          import matplotlib.pyplot as plt
+
+          atlas=nib.load("/home/sys03/Sanju/PARA/Data/Atlas/Yeo2011_7Networks/bet_MNI152_T1_1mm_brain.nii.gz")
+
+          type(atlas)
+          print(atlas.shape)
+
+          atlasf=atlas.get_fdata()
+          type(atlasf)
+          print(atlasf.dtype)
+          print(atlasf.shape)
+
+          # Same goes for template.
+          template=nib.load("/home/sys03/Sanju/PARA/Data/Atlas/Yeo2011_7Networks/bet_MNI152_T1_1mm_brain.nii.gz")
+
+          print(template.shape)
+          type(template)
+          templatef=template.get_fdata()
+          print(f"templatef type is: {type(templatef)}")
+
+          #Loading center of both template and atlas
+          fig, ax = plt.subplots()
+          ax.matshow(atlasf[:, :, atlasf.shape[2]//2], cmap='gray')
+          plt.show()
+
+          fig, ax = plt.subplots()
+          ax.matshow(templatef[:, :, templatef.shape[2]//2], cmap='gray')
+          plt.show()
+      </code></pre>      
+    </div> 
+
+<div class="open-question">
+  <p>Should a boundary loss be applied to the image directly, to the displacement field, or to both? What happens to sharp boundaries during warping, and does the warp preserve them or blur them?</p>
+</div>
 </body>
 </html>
