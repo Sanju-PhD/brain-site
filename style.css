@@ -332,12 +332,12 @@ footer {
       margin: 1.5rem 0;
     }
  
-    .session-date {
+    .Calculus {
       margin: top 1px;
       font-family: 'Libre Baskerville', serif;
-      font-size: 0.72rem;
-      font-style: italic;
-      color: #c9d1d9;
+      font-size: 1.0rem;
+      font-style: bold;
+      color: hsla(30, 84%, 53%, 0.949);
       margin-bottom: 0.8rem;
     }
  
@@ -351,7 +351,7 @@ footer {
       font-size: 0.88rem;
       color: #c9d1d9;
       margin: 0 0 0.3rem;
-      font-style: italic;
+      font-style: bold;
     }
  
     .concept-block p {
@@ -360,6 +360,23 @@ footer {
       color: #c9d1d9;
       line-height: 1.75;
       margin: 0;
+    }
+    .code {
+      font-family: 'Courier New', monospace;
+      font-size: 0.92rem;
+      background: #f7f5f0;
+      border-radius: 2px;
+      padding: 0.2rem 0.4rem;
+      color: #444;
+    }
+
+    .code h2 {
+      font-family: 'Courier New', monospace;
+      font-size: 1 rem;
+      background: #f7f5f0;
+      border-radius: 2px;
+      padding: 0.2rem 0.4rem;
+      color: #444;
     }
  
     .math-note {
