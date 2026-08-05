@@ -342,7 +342,7 @@ footer {
     }
  
     .concept-block {
-      margin-bottom: 1.4rem;
+      margin-bottom: 1.5rem; 
       color: #c9d1d9;
     }
  
@@ -350,8 +350,8 @@ footer {
       font-family: 'Libre Baskerville', serif;
       font-size: 0.88rem;
       color: #c9d1d9;
-      margin: 0 0 0.3rem;
-      font-style: bold;
+      margin: 0.2rem 0 0.1rem 0;  /* top | right | bottom | left */
+      font-weight: bold;
     }
  
     .concept-block p {
@@ -359,8 +359,9 @@ footer {
       font-size: 0.84rem;
       color: #c9d1d9;
       line-height: 1.75;
-      margin: 0;
+      margin-bottom: 0.2rem;
     }
+    
     .code {
       font-family: 'Courier New', monospace;
       font-size: 0.92rem;

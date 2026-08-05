@@ -148,18 +148,27 @@
 
     <h2>Stage 2- Registration concepts</h2>
       <div class="concept-block">
-        <h4>What does the deformation field φ actually store?</h4>
+        <h4>1. What does the deformation field φ actually store?</h4>
         <p>The deformation field φ is defined at every pixel location. At each pixel x, it stores a displacement vector (Δx, Δy) — meaning: "move this pixel by this much in order to align it with the fixed image." It is not the pixel's absolute position. It is the offset from where the pixel currently is to where it needs to go. The registration goal is then to find the φ that minimises intensity difference between the warped moving image and the fixed image.</p>
         <div class="math-note">φ(x) = displacement vector at pixel x. The warped image is I_m(x + φ(x)) ≈ I_f(x).</div>
       </div>
  
       <div class="concept-block">
-        <h4>Why does the displacement field need to be smooth?</h4>
+        <h4>2. Why does the displacement field need to be smooth?</h4>
         <p>If φ is smooth, neighbouring pixels have similar displacement vectors — the tissue deforms like a rubber sheet being gently stretched. If φ is jagged, neighbouring pixels get pulled in wildly different directions. A clean boundary between CSF and white matter gets torn, folded, or shattered. The network may still satisfy the similarity loss (intensities match numerically) but the anatomy becomes physically implausible. The regularisation term L_reg exists specifically to prevent this — it penalises large changes in φ between neighbouring pixels, which is equivalent to penalising the gradient of the displacement field.</p>
         <div class="math-note">L_reg = ‖∇φ‖² — penalises large spatial 
           derivatives of the displacement field. 
           Smoothness = differentiability = no folding.</div>
       </div>
+
+      <div class="concept-block">
+        <h4>3. When grid_sample pipeline registers a moving image to a fixed image, what doesthe algorithm actually touch?</h4>
+        <p>Register pipeline don't care about q_form code. They only pull 4x4 affine (voxel-> world mm)
+          use it to know physical spacing/orientation and then grind on intensities/labels.
+        </p>
+        <h4> 4. Does q_form have to match between moving and fixed images?</h4>
+        <p>No, its only red heering.</p>
+      </div>  
     <h2>Stage 3- Loss functions</h2>  
 
     <h2>Stage 4- Boundary losses</h2>
