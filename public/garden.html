@@ -169,7 +169,25 @@
         <h4> 4. Does q_form have to match between moving and fixed images?</h4>
         <p>No, its only red heering.</p>
       </div>  
+
+
     <h2>Stage 3- Loss functions</h2>  
+ 
+    <div class="concept-block">
+      <h4>1. I already knew <em>why</em> the displacement field needs regularization (see Stage 2). Here's what that actually looks like in code.</h4>
+      <p>Back in Stage 2 I wrote that L_reg = ‖∇φ‖² penalizes large spatial derivatives in the displacement field, to stop neighbouring pixels from being yanked in wildly different directions. Today I finally implemented that, instead of just describing it.</p>
+      <p>For a dense, non-linear, per-voxel displacement field of shape <code>[1, 3, D, H, W]</code>, the gradient penalty is just this: take the difference between each voxel's displacement and its neighbour's displacement, along each axis (D, H, W), square it, and average. In code that's three tensor slices subtracted from three shifted versions of themselves — one per spatial axis — squared and averaged together.</p>
+      <p>There's a real trade-off knob here. Too little regularisation weight and the field folds on itself — physically impossible deformation, tissue tearing. Too much, and the field barely moves at all, and you're back to looking almost affine. I'm still tuning this by trial and error — feels like the natural next entry once I've got a more principled way to pick it rather than guessing.</p>
+      <pre><code class="language-python">
+def smoothness_loss(field):
+    # simple L2 gradient penalty to stop the field folding on itself
+    dz = field[:, :, 1:, :, :] - field[:, :, :-1, :, :]
+    dy = field[:, :, :, 1:, :] - field[:, :, :, :-1, :]
+    dx = field[:, :, :, :, 1:] - field[:, :, :, :, :-1]
+    return (dz**2).mean() + (dy**2).mean() + (dx**2).mean()
+      </code></pre>
+      <div class="math-note">Regularisation isn't just a term in an equation — it's a literal difference between a voxel and its neighbour, squared and averaged. Turn the weight up or down and you can watch the field go from "rubber sheet" to "rigid" in real time.</div>
+    </div>
 
     <h2>Stage 4- Boundary losses</h2>
 
@@ -193,15 +211,53 @@
       fslorient -getorient /path/to/your/image.nii.gz
       </code>
       </pre>
-      <h4>Why is theta shaped 3×4 for a 3D affine transform, and not the full 4×4 matrix I learned in linear algebra?</h4>
       </p>
       <h4> 2. A Clipped Brain Mask Wears a Registration Costume</h4> 
       <p>Here's a sneaky one. You run your registration, the result looks a little "off" — brain seems squeezed, or content spills where it shouldn't — and your first instinct is to blame the registration algorithm or the loss function. But sometimes the real culprit happened one step earlier: brain extraction. Imagine tailoring a jacket to a photo of a person where the photo accidentally cropped off part of their shoulder. The tailor isn't doing anything wrong — they're just matching to bad input. If the tool that strips the skull off your MRI accidentally shaves off real brain tissue too, every step downstream — the affine transform, the deformable warp — is quietly trying to fit a brain shape that never existed. It looks exactly like a registration failure. It isn't. Always check your extraction step first, before you start rewriting math.</p> 
       <h4> 3. Config Files Have Opinions About Resolution</h4> 
       <p>Registration tools like fnirt come with preset "configs" — bundles of settings tuned for a specific use case. What I didn't expect: some of these configs quietly assume a specific image resolution, and hide a reference mask file at that resolution inside them. So if you feed a 1mm brain image into a config built for 2mm, it isn't a graceful "close enough" — the tool flat out refuses, because its hidden mask and your reference image no longer have matching dimensions. It's less like the tool being picky, and more like trying to use a 2mm-thick stencil on a photo you printed at a different size — the edges just won't line up. The fix is boring but important: match your reference image's resolution to what the config actually expects, or explicitly override the pieces that assume otherwise.</p> 
+      <h4> 4. Why is theta shaped 3×4 for a 3D affine transform, and not the full 4×4 matrix I learned in linear algebra?</h4>
+      <p>Good question, and it bugged me too at first. An affine transform is normally written as a 4×4 matrix acting on homogeneous coordinates [x, y, z, 1], producing [x', y', z', 1]. But look closely at that matrix — the bottom row is always [0, 0, 0, 1]. It's only there to keep the trailing 1 intact so the matrix multiplication works out. It carries zero actual transformation information — no rotation, no scale, no shear, nothing.</p>
+      <p><code>affine_grid</code> in PyTorch just skips that dead-weight row entirely. <code>theta</code> answers one question: "given an output coordinate [x, y, z, 1], where in the input should I sample from?" That's 4 inputs mapping to 3 outputs (x', y', z') — a 3×4 matrix, full stop. Same math I already knew, just without the row that never did anything.</p>
+      <div class="math-note">The 4th row of a homogeneous affine matrix is always [0,0,0,1] — pure bookkeeping. PyTorch's theta just doesn't bother storing it.</div>
+ 
+      <h4> 5. What does the size argument in <a href="https://docs.pytorch.org/docs/2.13/generated/torch.nn.functional.affine_grid.html"> affine_grid </a>(theta, size)  actually control? (I got this wrong and it cost me an afternoon)</h4>
+      <p>I assumed <code>size</code> meant "the shape of the image I'm about to warp" — i.e. my moving image. Wrong, and the error it produces is sneaky because it doesn't fail where you'd expect.</p>
+      <p><code>size</code> actually defines the shape of the <em>output</em> grid — the space I want my result to live in. So if I'm registering <code>moving</code> onto <code>fixed</code>, <code>size</code> should be <code>fixed.size()</code>, not <code>moving.size()</code>. <code>affine_grid</code> builds a grid of sampling coordinates shaped like the target, and <code>grid_sample</code> then reads from <code>moving</code> at those coordinates, producing an output shaped like <code>fixed</code>.</p>
+      <p>Get this backwards and nothing crashes immediately — <code>grid_sample</code> happily runs and gives back a warped image shaped like <code>moving</code> instead. The error only shows up several lines later, when the loss function tries to compare two differently-shaped tensors and throws a dimension mismatch that looks like it has nothing to do with <code>affine_grid</code> at all.</p>
+      <pre><code class="language-python">
+# wrong — grid ends up shaped like moving, not fixed
+grid = F.affine_grid(theta, moving.size(), align_corners=False)
+ 
+# correct — grid is shaped like the target output space
+grid = F.affine_grid(theta, fixed.size(), align_corners=False)
+      </code></pre>
+      <div class="math-note">affine_grid's size argument defines your output space (usually the fixed image), not the image you're warping. Get it backwards and the bug hides until the loss function, not the grid call.</div>
+ 
+      <h4> 6. My loss curve converged nicely. Why did that not mean the registration worked?</h4>
+      <p>I ran 3000 iterations of affine registration between a subject segmentation and an atlas ROI, and the NCC loss climbed fast, then flattened out hard around 0.516 for the last 2800 iterations. Textbook convergence, right? I thought so too — until I actually looked at the images side by side.</p>
+      <p>The "warped" output and the "fixed" target weren't subtly misaligned versions of the same anatomy. They were structurally different shapes entirely — different sizes, different regions represented. The residual (fixed minus warped) wasn't a thin rim of edge-mismatch you'd expect from a slightly-off registration. It was two large, solid blobs of leftover signal — a sign the optimizer had converged to the best <em>possible</em> affine fit, which just wasn't a good fit, because the two inputs weren't really comparable to begin with.</p>
+      <p>The lesson: a flat, converged loss curve only tells you the optimizer ran out of room to improve — not that what it converged to is anatomically correct. Before trusting a loss curve now, I check that my <code>moving</code> and <code>fixed</code> are actually the same kind of content — same modality, same expected structures — otherwise I'm just optimizing very confidently toward nonsense.</p>
+      <div class="math-note">A converged loss curve tells you the optimizer stopped, not that the result is right. Always eyeball the actual warped output before trusting the number.</div>
     </div>
+ 
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div class="concept-block">
     </div>
+
     <div class="code">
       <h2>Image loading via nibabel python library</h2>
       <pre><code class="language-python">
