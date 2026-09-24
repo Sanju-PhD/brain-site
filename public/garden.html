@@ -72,7 +72,7 @@
             <li>Coursera — AI for Medical Imaging (deeplearning.ai) <span class="badge badge-pending">pending</span></li>
             <li>Bajcsy &amp; Kovacic (1989) — elastic registration, foundational paper <span class="badge badge-next">next</span></li>
             <li>Avants et al. (2008) — SyN registration, ANTs framework <span class="badge badge-pending">pending</span></li>
-            <li>Balakrishnan et al. (2019) — VoxelMorph paper <span class="badge badge-pending">pending</span></li>
+            <li>Balakrishnan et al. (2019) — VoxelMorph paper <span class="badge badge-done">done</span></li>
           </ul>
         </div>
       </div>
@@ -86,7 +86,7 @@
         <div class="stage-content">
           <h3>Similarity &amp; regularization losses</h3>
           <ul class="resource-list">
-            <li>VoxelMorph GitHub documentation — loss function section <span class="badge badge-pending">pending</span></li>
+            <li>VoxelMorph GitHub documentation — loss function section <span class="badge badge-done">done</span></li>
             <li>Haskins et al. (2020) — survey on deep learning in medical image registration <span class="badge badge-pending">pending</span></li>
             <li>Shengyu Zhao — "Image Similarity Metrics" (YouTube) <span class="badge badge-pending">pending</span></li>
           </ul>
@@ -120,7 +120,7 @@
             <li>Nibabel Library — <span style="font-family:monospace; font-size:0.78rem;">nipy.org/nibabel</span> <span class="badge badge-pending">Done</span></li>
             <li>VoxelMorph GitHub — <span style="font-family:monospace; font-size:0.78rem;">github.com/voxelmorph/voxelmorph</span> <span class="badge badge-pending">pending</span></li>
             <li>MONAI framework — <span style="font-family:monospace; font-size:0.78rem;">monai.io</span> <span class="badge badge-pending">pending</span></li>
-            <li>Neurite library (same authors as VoxelMorph) <span class="badge badge-pending">pending</span></li>
+            <li>Neurite library (same authors as VoxelMorph) <span class="badge badge-pending">ongoing</span></li>
           </ul>
         </div>
       </div>
@@ -207,11 +207,22 @@ def smoothness_loss(field):
         distrust the registration — it was to actually check each file's stated 
         convention (`fslorient -getorient`) instead of assuming the warning 
         meant something was broken.
-      <pre><code class="language-bash">
-      fslorient -getorient /path/to/your/image.nii.gz
-      </code>
-      </pre>
-      </p>
+
+        It can also be used if you want to change the orientation of the image. 
+        For example, if you want to change the orientation of the image to RAS if its 
+        LAS or vise-versa, you can use the following command:
+        <pre><code class="language-bash">
+        fslorient swaporient /path/to/your/image.nii.gz
+        </code>
+        </pre>
+
+        Another important command to segment the brain regions is- `mri_synthseg`.   
+        <a href="https://surfer.nmr.mgh.harvard.edu/fswiki/SynthSeg"> Synthseg </a> is majorly a 3D U-Net-ish architecture trained on a large number of synthetic images. It can be used to segment the brain regions in the MRI images. 
+        <pre><code class="language-bash">
+        fslorient -getorient /path/to/your/image.nii.gz
+        </code>
+        </pre>
+        </p>
       <h4> 2. A Clipped Brain Mask Wears a Registration Costume</h4> 
       <p>Here's a sneaky one. You run your registration, the result looks a little "off" — brain seems squeezed, or content spills where it shouldn't — and your first instinct is to blame the registration algorithm or the loss function. But sometimes the real culprit happened one step earlier: brain extraction. Imagine tailoring a jacket to a photo of a person where the photo accidentally cropped off part of their shoulder. The tailor isn't doing anything wrong — they're just matching to bad input. If the tool that strips the skull off your MRI accidentally shaves off real brain tissue too, every step downstream — the affine transform, the deformable warp — is quietly trying to fit a brain shape that never existed. It looks exactly like a registration failure. It isn't. Always check your extraction step first, before you start rewriting math.</p> 
       <h4> 3. Config Files Have Opinions About Resolution</h4> 
@@ -226,11 +237,11 @@ def smoothness_loss(field):
       <p><code>size</code> actually defines the shape of the <em>output</em> grid — the space I want my result to live in. So if I'm registering <code>moving</code> onto <code>fixed</code>, <code>size</code> should be <code>fixed.size()</code>, not <code>moving.size()</code>. <code>affine_grid</code> builds a grid of sampling coordinates shaped like the target, and <code>grid_sample</code> then reads from <code>moving</code> at those coordinates, producing an output shaped like <code>fixed</code>.</p>
       <p>Get this backwards and nothing crashes immediately — <code>grid_sample</code> happily runs and gives back a warped image shaped like <code>moving</code> instead. The error only shows up several lines later, when the loss function tries to compare two differently-shaped tensors and throws a dimension mismatch that looks like it has nothing to do with <code>affine_grid</code> at all.</p>
       <pre><code class="language-python">
-# wrong — grid ends up shaped like moving, not fixed
-grid = F.affine_grid(theta, moving.size(), align_corners=False)
- 
-# correct — grid is shaped like the target output space
-grid = F.affine_grid(theta, fixed.size(), align_corners=False)
+      # wrong — grid ends up shaped like moving, not fixed
+      grid = F.affine_grid(theta, moving.size(), align_corners=False)
+      
+      # correct — grid is shaped like the target output space
+      grid = F.affine_grid(theta, fixed.size(), align_corners=False)
       </code></pre>
       <div class="math-note">affine_grid's size argument defines your output space (usually the fixed image), not the image you're warping. Get it backwards and the bug hides until the loss function, not the grid call.</div>
  
@@ -238,22 +249,91 @@ grid = F.affine_grid(theta, fixed.size(), align_corners=False)
       <p>I ran 3000 iterations of affine registration between a subject segmentation and an atlas ROI, and the NCC loss climbed fast, then flattened out hard around 0.516 for the last 2800 iterations. Textbook convergence, right? I thought so too — until I actually looked at the images side by side.</p>
       <p>The "warped" output and the "fixed" target weren't subtly misaligned versions of the same anatomy. They were structurally different shapes entirely — different sizes, different regions represented. The residual (fixed minus warped) wasn't a thin rim of edge-mismatch you'd expect from a slightly-off registration. It was two large, solid blobs of leftover signal — a sign the optimizer had converged to the best <em>possible</em> affine fit, which just wasn't a good fit, because the two inputs weren't really comparable to begin with.</p>
       <p>The lesson: a flat, converged loss curve only tells you the optimizer ran out of room to improve — not that what it converged to is anatomically correct. Before trusting a loss curve now, I check that my <code>moving</code> and <code>fixed</code> are actually the same kind of content — same modality, same expected structures — otherwise I'm just optimizing very confidently toward nonsense.</p>
-      <div class="math-note">A converged loss curve tells you the optimizer stopped, not that the result is right. Always eyeball the actual warped output before trusting the number.</div>
+      <div class="math-note">A converged loss curve tells you the optimizer stopped, not that the result is right. Always eyeball the actual warped output before trusting the number.
+      </div>
+
+      <h4 id="q7"> 7. FNIRT vs ANTs (SyN) — what "non-linear" is hiding</h4>
+
+      <p><strong>Both are non-linear registration, but what's the actual difference in how they warp an image?</strong></p>
+
+      <p>FNIRT: parameterizes the deformation as a cubic B-spline free-form deformation
+      (FFD) over a grid of control points, optimized via Gauss-Newton against
+      sum-of-squared differences (SSD), regularized by membrane/bending energy.
+      ANTs SyN: estimates a time-varying velocity field whose flow is integrated
+      to produce a diffeomorphism — smooth, invertible, differentiable in both
+      directions — optimized against local cross-correlation (CC), usually.</p>
+
+      <p><strong>You called ANTs "symmetric because it uses CC." Why is that wrong, and
+      what does "symmetric" actually refer to?</strong></p>
+
+      <p>Symmetry is a property of the transformation model, not the cost function —
+      CC is just the similarity metric ANTs defaults to for intra-modal T1-to-T1
+      work (it can run MI or SSD too). Symmetric means: instead of warping only
+      A→B (which dumps all resampling error onto A and privileges B as ground
+      truth), SyN estimates two half-warps to a shared mid-space and optimizes
+      them jointly, so composing them forward and backward gives exact inverses
+      of each other. The actual problem symmetry solves is inverse-consistency —
+      register A→B and B→A separately with an asymmetric method and you'll get
+      two different, non-invertible answers for what should be the same
+      correspondence. That's a silent bias, not a directional one.</p>
+
+      <p><strong>Stationary vs. time-varying velocity field — what's the real distinction?</strong></p>
+
+      <p>Not just "time-independent vs. time-dependent" (my first answer, correctly
+      called out as circular). A stationary velocity field (SVF) is one fixed
+      vector field integrated over unit time via the exponential map — cheap,
+      efficient (this is what Ashburner's DARTEL and diffeomorphic Demons use),
+      but it constrains the geodesic path the deformation can take. A
+      time-varying velocity field lets the velocity change at every time step
+      along the flow — closer to true LDDMM geodesic shooting — which supports
+      larger, more complex deformations at higher computational cost. ANTs SyN
+      is the time-varying, greedy approximation of this.</p>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>FNIRT</th>
+            <th>ANTs SyN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Deformation model</td>
+            <td>Cubic B-spline FFD</td>
+            <td>Time-varying velocity field (geodesic flow)</td>
+          </tr>
+          <tr>
+            <td>Diffeomorphic by construction?</td>
+            <td>No — needs Jacobian-determinant projection to enforce it</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td>Symmetric?</td>
+            <td>No</td>
+            <td>Yes — dual half-warps to mid-space</td>
+          </tr>
+          <tr>
+            <td>Default cost</td>
+            <td>SSD</td>
+            <td>CC (configurable)</td>
+          </tr>
+          <tr>
+            <td>Optimizer</td>
+            <td>Gauss-Newton on spline coeffs</td>
+            <td>Gradient descent on velocity fields, multi-res</td>
+          </tr>
+        </tbody>
+      </table>
+      </p>  
+      <p><strong>References (supervisor-grade):</strong></p>
+      <ul>
+        <li>Andersson JLR, Jenkinson M, Smith S (2007). <em>Non-linear registration, aka spatial normalisation.</em> FMRIB Technical Report TR07JA2.</li>
+        <li>Avants BB, Epstein CL, Grossman M, Gee JC (2008). <em>Symmetric diffeomorphic image registration with cross-correlation.</em> Medical Image Analysis, 12(1):26–41.</li>
+        <li>Avants BB, Tustison N, Song G (2009). <em>Advanced Normalization Tools (ANTS).</em> Insight Journal, 2:1–35.</li>
+      </ul>
     </div>
  
     </div>
-
-
-
-
-
-
-
-
-
-
-
-
 
     <div class="concept-block">
     </div>
